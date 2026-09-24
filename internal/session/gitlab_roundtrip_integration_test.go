@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -22,6 +24,7 @@ type gitLabRoundtripEnv struct {
 	host       string
 	branch     string
 	mrIID      int
+	mrURL      string
 	workDir    string
 	outputDir  string
 	critBinary string
@@ -123,7 +126,7 @@ func newGitLabRoundtripEnv(t *testing.T) *gitLabRoundtripEnv {
 	}
 
 	return &gitLabRoundtripEnv{
-		t: t, project: project, host: host, branch: branch, mrIID: mr.IID,
+		t: t, project: project, host: host, branch: branch, mrIID: mr.IID, mrURL: mr.WebURL,
 		workDir: workDir, outputDir: t.TempDir(), critBinary: critBinary,
 	}
 }
@@ -236,6 +239,93 @@ func TestGitLabRoundtrip_FullCommentLifecycle(t *testing.T) {
 	deleteOut := e.runCrit("push", "--forge", "gitlab", "--output", e.outputDir, fmt.Sprint(e.mrIID))
 	if !strings.Contains(deleteOut, "deleted 1") || len(e.discussions()) != 0 {
 		t.Fatalf("delete push mismatch:\n%s\nremote=%+v", deleteOut, e.discussions())
+	}
+}
+
+// Reproduces #899: an agent asked to "crit this MR" starts `crit --mr <url>`,
+// the human comments and hits Finish, and the agent must be told to push the
+// comments to the MR rather than edit code. Then the agent runs exactly the
+// command it was given and the comment has to reach GitLab.
+func TestGitLabRoundtrip_FinishPromptPointsAtPush(t *testing.T) {
+	e := newGitLabRoundtripEnv(t)
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	ln.Close()
+	base := fmt.Sprintf("http://127.0.0.1:%d", port)
+
+	// The client blocks until Finish, then prints the agent prompt and exits.
+	client := exec.Command(e.critBinary, "--mr", e.mrURL, "--remote", "--no-open", "--port", fmt.Sprint(port))
+	client.Dir = e.workDir
+	var clientOut bytes.Buffer
+	client.Stdout = &clientOut
+	client.Stderr = &clientOut
+	if err := client.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		stop := exec.Command(e.critBinary, "stop")
+		stop.Dir = e.workDir
+		_ = stop.Run()
+		_ = client.Process.Kill()
+	})
+
+	// Poll until the session is ready — endpoints return 503 until then.
+	ready := false
+	for attempt := 0; attempt < 120 && !ready; attempt++ {
+		if resp, err := http.Get(base + "/api/session"); err == nil {
+			ready = resp.StatusCode == http.StatusOK
+			resp.Body.Close()
+		}
+		if !ready {
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+	if !ready {
+		t.Fatalf("review session never became ready:\n%s", clientOut.String())
+	}
+
+	body := `{"start_line":3,"end_line":3,"body":"please rename this function"}`
+	resp, err := http.Post(base+"/api/file/comments?path=crit_gitlab_roundtrip.go", "application/json", strings.NewReader(body))
+	if err != nil || resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		t.Fatalf("add comment: err=%v status=%v", err, resp)
+	}
+	resp.Body.Close()
+
+	resp, err = http.Post(base+"/api/finish", "application/json", nil)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("finish: err=%v status=%v", err, resp)
+	}
+	resp.Body.Close()
+
+	done := make(chan error, 1)
+	go func() { done <- client.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatalf("client did not exit after finish:\n%s", clientOut.String())
+	}
+	prompt := clientOut.String()
+
+	pushCmd := "crit push --forge gitlab " + e.mrURL
+	if !strings.Contains(prompt, pushCmd) {
+		t.Fatalf("agent prompt does not tell it to run %q:\n%s", pushCmd, prompt)
+	}
+	if strings.Contains(prompt, "Address each comment") {
+		t.Fatalf("agent prompt still tells it to change the code:\n%s", prompt)
+	}
+
+	// The agent runs exactly what it was told, with the review still open.
+	pushOut := e.runCrit("push", "--forge", "gitlab", e.mrURL)
+	if !strings.Contains(pushOut, "Posted 1 comments") {
+		t.Fatalf("push from prompt did not post the comment:\n%s", pushOut)
+	}
+	discussions := e.discussions()
+	if len(discussions) != 1 || !strings.Contains(discussions[0].Notes[0].Body, "please rename this function") {
+		t.Fatalf("comment did not reach the MR: %+v", discussions)
 	}
 }
 

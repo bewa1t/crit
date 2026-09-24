@@ -120,6 +120,9 @@ All `CRIT_*` env vars are strings (shell env vars can only carry strings). Numer
 | `CRIT_NEXT_ROUND_CMD` | Command to start the next round |
 | `CRIT_COMMENTS_UNRESOLVED_JSON` | Unresolved comment threads as a JSON array |
 | `CRIT_COMMENTS_JSON` | All comments in the session as a JSON array |
+| `CRIT_FORGE` | `github` or `gitlab` when the session reviews a PR or MR; empty otherwise |
+| `CRIT_CHANGE_NUMBER` | PR or MR number; empty otherwise |
+| `CRIT_CHANGE_URL` | PR or MR URL; empty otherwise — e.g. `crit push --forge "$CRIT_FORGE" "$CRIT_CHANGE_URL"` in an `on_finish_unresolved:diff` hook syncs comments automatically |
 | `CRIT_SESSION_DURATION_SECONDS` | Session duration (when stats available) |
 | `CRIT_SESSION_FILES_REVIEWED` | Files reviewed |
 | `CRIT_SESSION_COMMENTS_SUBMITTED` | Comments you submitted |

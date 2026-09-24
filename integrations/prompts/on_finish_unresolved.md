@@ -2,7 +2,11 @@
 
 {{if .comments_unresolved_json}}{{.comments_unresolved_json}}
 
-{{end}}{{if eq .internal_session_mode "plan"}}Revise the plan to address each comment. To reply to comments, use `crit comment --plan {{.plan_slug}} --reply-to <id> --author <your-name> "<explanation>"`.{{else}}Address each comment. For each one, reply explaining what you did using `crit comment --reply-to <comment-id> --author <your-name> "<explanation>"`.{{end}}{{if .next_round_cmd}}
+{{end}}{{if .change_url}}These comments are review feedback on {{if eq .forge "gitlab"}}merge request !{{.change_number}}{{else}}pull request #{{.change_number}}{{end}} ({{.change_url}}). Post them there by running:
+
+  crit push --forge {{.forge}} {{.change_url}}
+
+Do not edit any files unless the user asks you to.{{else if eq .internal_session_mode "plan"}}Revise the plan to address each comment. To reply to comments, use `crit comment --plan {{.plan_slug}} --reply-to <id> --author <your-name> "<explanation>"`.{{else}}Address each comment. For each one, reply explaining what you did using `crit comment --reply-to <comment-id> --author <your-name> "<explanation>"`.{{end}}{{if and .next_round_cmd (not .change_url)}}
 
 When you're done, run:
 

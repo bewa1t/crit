@@ -262,6 +262,24 @@ func TestEnvMapAndJSONPayload(t *testing.T) {
 	if !strings.Contains(payload, `"comments_unresolved_json": []`) {
 		t.Fatalf("payload missing empty array: %s", payload)
 	}
+	// no PR/MR in focus: change vars are present but empty
+	if env["CRIT_FORGE"] != "" || env["CRIT_CHANGE_NUMBER"] != "" || env["CRIT_CHANGE_URL"] != "" {
+		t.Fatalf("change env should be empty: %+v", env)
+	}
+}
+
+func TestEnvMapAndJSONPayload_Change(t *testing.T) {
+	ctx := prompt.Context{Forge: "gitlab", ChangeNumber: 67, ChangeURL: "https://gitlab.example.com/g/p/-/merge_requests/67"}
+	env := hooks.EnvMap(ctx)
+	if env["CRIT_FORGE"] != "gitlab" || env["CRIT_CHANGE_NUMBER"] != "67" || env["CRIT_CHANGE_URL"] != ctx.ChangeURL {
+		t.Fatalf("env = %+v", env)
+	}
+	payload := string(hooks.JSONPayload(ctx))
+	for _, want := range []string{`"forge": "gitlab"`, `"change_number": 67`, `"change_url": "` + ctx.ChangeURL + `"`} {
+		if !strings.Contains(payload, want) {
+			t.Fatalf("payload missing %s: %s", want, payload)
+		}
+	}
 }
 
 func TestEnvMapAndJSONPayload_WithSessionStats(t *testing.T) {

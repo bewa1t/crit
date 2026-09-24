@@ -74,6 +74,49 @@ func TestBuildPromptContext_StoryModeWhenSessionHasStory(t *testing.T) {
 	}
 }
 
+func TestBuildPromptContext_ChangeIdentity(t *testing.T) {
+	tests := []struct {
+		name       string
+		focus      session.Focus
+		wantForge  string
+		wantNumber int
+		wantURL    string
+	}{
+		{
+			name:       "gitlab MR",
+			focus:      session.Focus{Kind: FocusRange, Forge: "gitlab", ChangeNumber: 67, MRURL: "https://gitlab.example.com/g/p/-/merge_requests/67"},
+			wantForge:  "gitlab",
+			wantNumber: 67,
+			wantURL:    "https://gitlab.example.com/g/p/-/merge_requests/67",
+		},
+		{
+			name:       "github PR",
+			focus:      session.Focus{Kind: FocusRange, Forge: "github", ChangeNumber: 42, PRURL: "https://github.com/o/r/pull/42"},
+			wantForge:  "github",
+			wantNumber: 42,
+			wantURL:    "https://github.com/o/r/pull/42",
+		},
+		{
+			name:  "plain range has no change",
+			focus: session.Focus{Kind: FocusRange, BaseSHA: "a", HeadSHA: "b"},
+		},
+		{
+			name:  "working tree has no change",
+			focus: session.Focus{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, sess := newTestServer(t)
+			sess.Focus = tt.focus
+			ctx := s.buildPromptContext(sess, false, nil)
+			if ctx.Forge != tt.wantForge || ctx.ChangeNumber != tt.wantNumber || ctx.ChangeURL != tt.wantURL {
+				t.Fatalf("got forge=%q number=%d url=%q", ctx.Forge, ctx.ChangeNumber, ctx.ChangeURL)
+			}
+		})
+	}
+}
+
 func TestHandleConfig_ProjectPromptUntrusted(t *testing.T) {
 	s, session := newTestServer(t)
 	dir := session.RepoRoot

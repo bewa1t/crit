@@ -44,6 +44,17 @@ func (s *Server) buildPromptContext(sess *Session, approved bool, stats map[stri
 	if sess.Mode == "plan" && sess.PlanDir != "" {
 		ctx.PlanSlug = filepath.Base(sess.PlanDir)
 	}
+	sess.RLock()
+	focus := sess.Focus
+	sess.RUnlock()
+	if focus.Kind == FocusRange && focus.ChangeNumber > 0 {
+		ctx.Forge = focus.Forge
+		ctx.ChangeNumber = focus.ChangeNumber
+		ctx.ChangeURL = focus.PRURL
+		if focus.Forge == "gitlab" {
+			ctx.ChangeURL = focus.MRURL
+		}
+	}
 	unresolved := listUnresolvedComments(sess)
 	if len(unresolved) > 0 {
 		if b, err := json.Marshal(unresolved); err == nil {

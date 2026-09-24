@@ -24,6 +24,11 @@ type Context struct {
 	CommentsJSON           string // all comments in the session
 	Approved               bool
 	InternalSessionMode    string // files | git | plan — for default action builders
+	// Set only when the session reviews a GitHub PR or GitLab MR, so
+	// templates can point the agent at `crit push` instead of code edits.
+	Forge        string // github | gitlab
+	ChangeNumber int
+	ChangeURL    string
 }
 
 // TemplateData returns a map with snake_case keys for text/template.
@@ -43,6 +48,9 @@ func (c Context) TemplateData() map[string]any {
 		"comments_json":            c.CommentsJSON,
 		"approved":                 c.Approved,
 		"internal_session_mode":    c.InternalSessionMode,
+		"forge":                    c.Forge,
+		"change_number":            c.ChangeNumber,
+		"change_url":               c.ChangeURL,
 	}
 	if c.SessionStats != nil {
 		data["session_stats"] = map[string]any{

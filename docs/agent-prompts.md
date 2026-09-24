@@ -146,6 +146,11 @@ Templates receive these variables (snake_case in templates):
 | `{{.session_stats.duration_seconds}}` | Session duration (when available) |
 | `{{.session_stats.files_reviewed}}` | Files reviewed |
 | `{{.session_stats.comments_submitted}}` | Comments you submitted |
+| `{{.forge}}` | `github` or `gitlab` when the session reviews a PR or MR; empty otherwise |
+| `{{.change_number}}` | PR or MR number; `0` otherwise |
+| `{{.change_url}}` | PR or MR URL; empty otherwise |
+
+When `change_url` is set, the stock finish prompts tell the agent to post the comments with `crit push --forge <forge> <url>` instead of editing code, since a PR/MR review is usually feedback on someone else's change.
 
 **Conditionals:** [Go `text/template` syntax](https://pkg.go.dev/text/template), e.g. `{{if gt .unresolved_count 10}}…{{else}}…{{end}}`.
 

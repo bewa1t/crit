@@ -104,6 +104,83 @@ func TestRenderFinish_DefaultUnchanged(t *testing.T) {
 	}
 }
 
+// A PR/MR review is feedback on someone else's change: the stock prompts must
+// tell the agent to push the comments, not to edit code or start another round.
+func TestRenderFinish_ChangeReviewPointsAtPush(t *testing.T) {
+	const mrURL = "https://gitlab.example.com/g/p/-/merge_requests/67"
+	const prURL = "https://github.com/o/r/pull/42"
+	tests := []struct {
+		name     string
+		ctx      prompt.Context
+		want     []string
+		dontWant []string
+	}{
+		{
+			name: "gitlab unresolved",
+			ctx: prompt.Context{Mode: "diff", InternalSessionMode: "git", UnresolvedCount: 2, TotalCount: 2,
+				NextRoundCmd: "crit --session abcd", Forge: "gitlab", ChangeNumber: 67, ChangeURL: mrURL},
+			want:     []string{"merge request !67", "crit push --forge gitlab " + mrURL, "Do not edit any files"},
+			dontWant: []string{"Address each comment", "crit --session abcd"},
+		},
+		{
+			name: "github unresolved",
+			ctx: prompt.Context{Mode: "diff", InternalSessionMode: "git", UnresolvedCount: 1, TotalCount: 1,
+				NextRoundCmd: "crit --session abcd", Forge: "github", ChangeNumber: 42, ChangeURL: prURL},
+			want:     []string{"pull request #42", "crit push --forge github " + prURL},
+			dontWant: []string{"Address each comment", "crit --session abcd"},
+		},
+		{
+			name: "gitlab approved with resolved comments",
+			ctx: prompt.Context{Mode: "diff", InternalSessionMode: "git", Approved: true, TotalCount: 3,
+				Forge: "gitlab", ChangeNumber: 67, ChangeURL: mrURL},
+			want:     []string{"merge request !67", "nothing to push"},
+			dontWant: []string{"proceed with implementation"},
+		},
+		{
+			name: "story unresolved",
+			ctx: prompt.Context{Mode: "story", InternalSessionMode: "git", UnresolvedCount: 1, TotalCount: 1,
+				NextRoundCmd: "crit --session abcd", Forge: "gitlab", ChangeNumber: 67, ChangeURL: mrURL},
+			want:     []string{"story-mode review finished", "crit push --forge gitlab " + mrURL},
+			dontWant: []string{"make any needed code edit", "crit --session abcd"},
+		},
+		{
+			name: "story approved",
+			ctx: prompt.Context{Mode: "story", InternalSessionMode: "git", Approved: true, TotalCount: 1,
+				Forge: "gitlab", ChangeNumber: 67, ChangeURL: mrURL},
+			want:     []string{"merge request !67", "nothing to push"},
+			dontWant: []string{"Story-mode review approved"},
+		},
+		{
+			name: "local diff review unchanged",
+			ctx: prompt.Context{Mode: "diff", InternalSessionMode: "git", UnresolvedCount: 1, TotalCount: 1,
+				NextRoundCmd: "crit --session abcd"},
+			want:     []string{"Address each comment", "crit --session abcd"},
+			dontWant: []string{"crit push"},
+		},
+		{
+			name:     "local approved unchanged",
+			ctx:      prompt.Context{Mode: "diff", InternalSessionMode: "git", Approved: true, TotalCount: 2},
+			want:     []string{"proceed with implementation"},
+			dontWant: []string{"crit push"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := prompt.RenderFinish(nil, nil, "", "", false, tt.ctx).Prompt
+			for _, s := range tt.want {
+				if !strings.Contains(got, s) {
+					t.Errorf("missing %q in:\n%s", s, got)
+				}
+			}
+			for _, s := range tt.dontWant {
+				if strings.Contains(got, s) {
+					t.Errorf("unexpected %q in:\n%s", s, got)
+				}
+			}
+		})
+	}
+}
+
 func TestRenderFinish_StoryUsesUserStoryPromptFirst(t *testing.T) {
 	project := map[string]string{
 		"on_finish_unresolved":       "inline:GENERIC",

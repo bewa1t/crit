@@ -33,6 +33,12 @@ func EnvMap(c prompt.Context) map[string]string {
 		EnvPrefix + "FILES_WITH_COMMENTS_COUNT": strconv.Itoa(len(c.FilesWithComments)),
 		EnvPrefix + "COMMENTS_UNRESOLVED_JSON":  c.CommentsUnresolvedJSON,
 		EnvPrefix + "COMMENTS_JSON":             c.CommentsJSON,
+		EnvPrefix + "FORGE":                     c.Forge,
+		EnvPrefix + "CHANGE_URL":                c.ChangeURL,
+		EnvPrefix + "CHANGE_NUMBER":             "",
+	}
+	if c.ChangeNumber > 0 {
+		m[EnvPrefix+"CHANGE_NUMBER"] = strconv.Itoa(c.ChangeNumber)
 	}
 	if c.SessionStats != nil {
 		m[EnvPrefix+"SESSION_DURATION_SECONDS"] = strconv.Itoa(c.SessionStats.DurationSeconds)
@@ -61,6 +67,9 @@ func JSONPayload(c prompt.Context) []byte {
 		"files_with_comments":      c.FilesWithComments,
 		"comments_unresolved_json": json.RawMessage(nilOrJSON(c.CommentsUnresolvedJSON)),
 		"comments_json":            json.RawMessage(nilOrJSON(c.CommentsJSON)),
+		"forge":                    c.Forge,
+		"change_number":            c.ChangeNumber,
+		"change_url":               c.ChangeURL,
 	}
 	if c.SessionStats != nil {
 		payload["session_stats"] = map[string]any{
