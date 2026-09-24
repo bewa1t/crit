@@ -8,7 +8,7 @@ set -e
 
 # Variables set dynamically via JS or intentionally unreferenced
 DEAD_VAR_ALLOWLIST="
---font-sans --header-height --file-tree-width --p
+--font-sans --header-height --file-tree-width --comments-panel-width --p
 --crit-border-strong --crit-dur-base --crit-dur-slow --crit-ease-in --crit-ease-out
 --crit-editor-bg-gutter --crit-fg-muted --crit-fg-secondary --crit-header-height
 --crit-r-sm --crit-r-xl

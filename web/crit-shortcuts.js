@@ -36,7 +36,6 @@
     ]},
     { label: 'Review', shortcuts: [
       { id: 'finish_review', binding: 'Shift+F', action: 'Finish review', modes: BOTH },
-      { id: 'toggle_comments', binding: 'Shift+C', action: 'Toggle comments panel', modes: CODE_REVIEW_ONLY },
       { id: 'scope_all', binding: 'Shift+1', action: 'Switch to all changes', mode: 'vcs mode', modes: CODE_REVIEW_ONLY },
       { id: 'scope_branch', binding: 'Shift+2', action: 'Switch to branch changes', mode: 'vcs mode', modes: CODE_REVIEW_ONLY },
       { id: 'scope_staged', binding: 'Shift+3', action: 'Switch to staged changes', mode: 'vcs mode', modes: CODE_REVIEW_ONLY },
@@ -55,6 +54,7 @@
     ]},
     { label: 'View', shortcuts: [
       { id: 'toggle_file_tree', binding: 'b', action: 'Toggle file tree sidebar', modes: CODE_REVIEW_ONLY },
+      { id: 'toggle_comments', binding: 'Shift+C', action: 'Toggle comments panel', modes: CODE_REVIEW_ONLY },
       { id: 'toggle_toc', binding: 't', action: 'Toggle table of contents', mode: 'file mode', modes: CODE_REVIEW_ONLY },
       { id: 'toggle_resolved', binding: 'h', action: 'Toggle hide resolved', modes: CODE_REVIEW_ONLY },
       { binding: 'Esc', action: 'Cancel / clear focus', modes: BOTH, fixed: true },

@@ -3795,9 +3795,24 @@ html[data-theme="light"] .updates-agent-icon-light { display: block !important; 
   background: var(--crit-brand);
   outline: none;
 }
-/* Hide the comments-panel resizer when its panel is hidden. */
+/* Comments panel collapsed — mirror the file-tree slide on the right edge.
+   Uses margin-right so the panel slides off to the right and the content
+   expands into the freed space. Visibility hides it from tab order once
+   the slide completes. */
+.comments-panel-hidden {
+  margin-right: calc(-1 * var(--comments-panel-width, 480px));
+  visibility: hidden;
+}
 .main-layout:has(#commentsPanel.comments-panel-hidden) #commentsPanelResizer {
-  display: none;
+  flex-basis: 0;
+}
+body.comments-panel-anim .comments-panel {
+  transition: margin-right 0.22s ease, visibility 0.22s;
+}
+body.comments-panel-anim #commentsPanelResizer { transition: flex-basis 0.22s ease; }
+@media (prefers-reduced-motion: reduce) {
+  body.comments-panel-anim .comments-panel,
+  body.comments-panel-anim #commentsPanelResizer { transition: none; }
 }
 /* Suppress text selection and force resize cursor while dragging. */
 body.sidebar-resizing,
@@ -4068,7 +4083,6 @@ body.file-tree-anim #fileTreeResizer { transition: flex-basis 0.22s ease; }
 }
 .comments-panel::-webkit-scrollbar { width: 5px; }
 .comments-panel::-webkit-scrollbar-thumb { background: var(--crit-editor-scrollbar-thumb); border-radius: 3px; }
-.comments-panel-hidden { display: none; }
 
 /* Two-row panel header */
 .comments-panel-header {

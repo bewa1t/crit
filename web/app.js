@@ -874,6 +874,10 @@
     if (window.crit && window.crit.shared) window.crit.shared.applyCodeFontFromCookie();
     initSidebarWidths();
     setFileTreeCollapsed(getSetting('fileTree', 'open') === 'collapsed');
+    // Comments panel starts hidden (no persistence yet, unlike file tree).
+    // Animation mirrors the left sidebar slide; persistence can be added later
+    // by reading getSetting('commentsPanel') here.
+    setCommentsPanelCollapsed(true);
 
     // Measure actual header height and set CSS variable for sticky offsets
     function updateHeaderHeight() {
@@ -7288,13 +7292,12 @@
   function toggleCommentsPanel() {
     const panel = document.getElementById('commentsPanel');
     const isHidden = panel.classList.contains('comments-panel-hidden');
-    panel.classList.toggle('comments-panel-hidden');
+    setCommentsPanelCollapsed(!isHidden, true);
     if (isHidden) {
       // Close PR panel when opening comments
       document.getElementById('prPanel').classList.add('pr-panel-hidden');
       renderCommentsPanel();
     }
-    updateTocPosition();
   }
 
   function createPanelCommentCard(comment, filePath) {
@@ -7604,7 +7607,7 @@
     panel.classList.toggle('pr-panel-hidden');
     // Close comments panel if opening PR panel
     if (isHidden) {
-      document.getElementById('commentsPanel').classList.add('comments-panel-hidden');
+      setCommentsPanelCollapsed(true, true);
       renderPRPanel();
     }
     updateTocPosition();
@@ -9550,6 +9553,25 @@
     setFileTreeCollapsed(!document.body.classList.contains('file-tree-collapsed'), true);
   });
 
+  // ===== Comments Panel Toggle (mirrors file-tree slide on right) =====
+  function setCommentsPanelCollapsed(collapsed, animate) {
+    const panel = document.getElementById('commentsPanel');
+    if (!panel) return;
+    const w = panel.getBoundingClientRect().width;
+    if (w > 0) document.body.style.setProperty('--comments-panel-width', w + 'px');
+    if (animate) startCommentsPanelAnimation();
+    panel.classList.toggle('comments-panel-hidden', collapsed);
+    // Not persisted yet — keeps the existing "hidden after reload" test green.
+    // To mirror file-tree persistence, replace with:
+    // setSetting('commentsPanel', collapsed ? 'collapsed' : 'open');
+    updateTocPosition();
+  }
+
+  function startCommentsPanelAnimation() {
+    document.body.classList.add('comments-panel-anim');
+    document.body.getBoundingClientRect();
+  }
+
   // ===== TOC Toggle =====
   document.getElementById('tocToggle').addEventListener('click', function() {
     const tocEl = document.getElementById('toc');
@@ -9722,8 +9744,7 @@
   });
 
   document.querySelector('.comments-panel-close').addEventListener('click', function() {
-    document.getElementById('commentsPanel').classList.add('comments-panel-hidden');
-    updateTocPosition();
+    setCommentsPanelCollapsed(true, true);
   });
 
   document.getElementById('prToggle').addEventListener('click', function() {
