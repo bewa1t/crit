@@ -219,6 +219,29 @@ test.describe('Story mode', () => {
     await clearStory(request);
   });
 
+  test('header sidebar toggle collapses the chapter rail (same control as file tree)', async ({ page, request }) => {
+    await ingestStory(critBin, fixtureDir, fakeHome);
+    await loadPage(page);
+    await expect(page.locator('body')).toHaveClass(/crit-story-active/);
+
+    const toggle = page.locator('#fileTreeToggle');
+    await expect(toggle).toBeVisible();
+    await expect(page.locator('#storyRailToggle')).toHaveCount(0);
+
+    await expect(storyRail(page)).toBeVisible();
+    await toggle.click();
+    await expect(page.locator('body')).toHaveClass(/crit-story-rail-collapsed/);
+    await expect(storyRail(page)).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await toggle.click();
+    await expect(page.locator('body')).not.toHaveClass(/crit-story-rail-collapsed/);
+    await expect(storyRail(page)).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await clearStory(request);
+  });
+
   test('navigating into a chapter shows only that chapter\'s file groups', async ({ page }) => {
     await ingestStory(critBin, fixtureDir, fakeHome);
     await loadPage(page);

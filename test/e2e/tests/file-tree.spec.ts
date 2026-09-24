@@ -63,6 +63,32 @@ test.describe('File Tree — Git Mode', () => {
     await expect(panel).toBeVisible();
   });
 
+  test('b is a no-op when the toggle is CSS-hidden (mobile)', async ({ page }) => {
+    const panel = page.locator('#fileTreePanel');
+    await expect(panel).toBeVisible();
+    await page.setViewportSize({ width: 375, height: 812 });
+    await expect(page.locator('#fileTreeToggle')).toBeHidden();
+    await page.locator('body').press('b');
+    // Mobile already hides the tree via CSS; ensure we did not write a
+    // collapsed cookie that would stick after restoring desktop width.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(page.locator('#fileTreePanel')).toBeVisible();
+    await expect(page.locator('body')).not.toHaveClass(/file-tree-collapsed/);
+  });
+
+  test('collapsed file-tree resizer is not tabbable', async ({ page }) => {
+    await page.locator('#fileTreeToggle').click();
+    await expect(page.locator('#fileTreePanel')).toBeHidden();
+    await expect(page.locator('#fileTreeResizer')).toHaveCSS('visibility', 'hidden');
+    const focused = await page.evaluate(() => {
+      const r = document.getElementById('fileTreeResizer');
+      if (!r) return 'missing';
+      r.focus();
+      return document.activeElement === r ? 'focused' : 'skipped';
+    });
+    expect(focused).toBe('skipped');
+  });
+
   test('file tree lists all files from the session', async ({ page }) => {
     // Git fixture has: plan.md, skill.md, server.go, handler.js, deleted.txt, routes.go, legacy.go (committed)
     // + utils.go, login.feature (staged), config.yaml (untracked) = 10 total

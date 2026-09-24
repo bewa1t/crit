@@ -158,7 +158,11 @@
 
     // Reveal the comments-panel (existing markup is hidden by default).
     var commentsPanel = document.getElementById('commentsPanel');
-    if (commentsPanel) commentsPanel.classList.remove('comments-panel-hidden');
+    if (commentsPanel) {
+      commentsPanel.classList.remove('comments-panel-hidden');
+      var cw = commentsPanel.getBoundingClientRect().width;
+      if (cw > 0) document.body.style.setProperty('--comments-panel-width', cw + 'px');
+    }
 
     // Sync --header-height + --crit-header-height to the live header height.
     // app.js does this for code-review but doesn't run on /live, so without
